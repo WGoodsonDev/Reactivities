@@ -1,21 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Application.Activities;
-using Application.Core;
-using MediatR;
+
+using API.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Models;
-using Persistence;
 
 namespace API
 {
@@ -33,27 +22,7 @@ namespace API
         {
 
             services.AddControllers();
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
-            });
-            // Add database context
-            services.AddDbContext<DataContext>(opt =>
-            {
-                opt.UseSqlite(_config.GetConnectionString("DefaultConnection"));
-            });
-            // CORS policy
-            services.AddCors(opt => 
-            {
-                opt.AddPolicy("CorsPolicy", policy =>
-                {
-                    policy.AllowAnyMethod().AllowAnyHeader().WithOrigins("http://localhost:3000");
-                });
-            });
-            // Add MediatR service
-            services.AddMediatR(typeof(List.Handler).Assembly);
-            // Add AutoMapper service
-            services.AddAutoMapper(typeof(MappingProfiles).Assembly);
+            services.AddApplicationServices(_config);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
