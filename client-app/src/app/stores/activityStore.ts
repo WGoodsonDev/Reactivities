@@ -4,6 +4,7 @@ import { Activity } from '../models/activity';
 import {v4 as uuid} from 'uuid';
 
 export default class ActivityStore {
+    // State to store (observables)
     activities: Activity[] = [];
     selectedActivity: Activity | undefined = undefined;
     editMode = false;
@@ -11,7 +12,7 @@ export default class ActivityStore {
     loadingInitial = false;
 
     constructor() {
-        makeAutoObservable(this);
+        makeAutoObservable(this); // Automatically binds methods to class as Actions
     }
 
     loadActivities = async () => {
@@ -56,7 +57,7 @@ export default class ActivityStore {
         activity.id = uuid();
         try {
             await agent.Activities.create(activity);
-            runInAction(() => {
+            runInAction(() => { // Run in separate action
                 this.activities.push(activity);
                 this.selectedActivity = activity;
                 this.editMode = false;
@@ -64,7 +65,7 @@ export default class ActivityStore {
             })
         } catch (err) {
             console.log(err);
-            runInAction(() => {
+            runInAction(() => { // Run in separate action
                 this.loading = false;
             })
         }
@@ -74,7 +75,7 @@ export default class ActivityStore {
         this.loading = true;
         try {
             await agent.Activities.update(activity);
-            runInAction(() => {
+            runInAction(() => { // Run in separate action
                 this.activities = [...this.activities.filter(a => a.id !== activity.id), activity];
                 this.selectedActivity = activity;
                 this.editMode = false;
@@ -82,6 +83,23 @@ export default class ActivityStore {
             })
         } catch (err) {
             console.log(err);
+            runInAction(() => { // Run in separate action
+                this.loading = false;
+            })
+        }
+    }
+
+    deleteActivity = async (id: string) => {
+        this.loading = true;
+        try {
+            await agent.Activities.delete(id);
+            runInAction(() => { // Run in separate action
+                this.activities = [...this.activities.filter(a => a.id !== id)];
+                if(this.selectedActivity?.id === id) this.cancelSelectedActivity();
+                this.loading = false;
+            })
+        } catch (err) {
+            console.log(err)
             runInAction(() => {
                 this.loading = false;
             })
