@@ -5,24 +5,27 @@ import {v4 as uuid} from 'uuid';
 
 export default class ActivityStore {
     // State to store (observables)
-    activities: Activity[] = [];
+    activityRegistry = new Map<string, Activity>();
     selectedActivity: Activity | undefined = undefined;
     editMode = false;
     loading = false;
-    loadingInitial = false;
+    loadingInitial = true;
 
     constructor() {
         makeAutoObservable(this); // Automatically binds methods to class as Actions
     }
 
+    get activitiesByDate() {
+        return Array.from(this.activityRegistry.values()).sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+    }
+
     loadActivities = async () => {
-        this.setLoadingInitial(true);
         try {
             const activities = await agent.Activities.list();
             activities.forEach(activity => {
                 activity.date = activity.date.split('T')[0];
-                this.activities.push(activity);
-                })
+                this.activityRegistry.set(activity.id, activity);
+            })
             this.setLoadingInitial(false);
         } catch(err) {
             console.log(err);
@@ -35,7 +38,7 @@ export default class ActivityStore {
     }
 
     selectActivity = (id: string) => {
-        this.selectedActivity = this.activities.find(a => a.id === id);
+        this.selectedActivity = this.activityRegistry.get(id);
     }
 
     cancelSelectedActivity = () => {
@@ -43,7 +46,6 @@ export default class ActivityStore {
     }
 
     openForm = (id?: string) => {
-        console.log("fuck");
         id ? this.selectActivity(id) : this.cancelSelectedActivity();
         this.editMode = true;
     }
@@ -58,7 +60,7 @@ export default class ActivityStore {
         try {
             await agent.Activities.create(activity);
             runInAction(() => { // Run in separate action
-                this.activities.push(activity);
+                this.activityRegistry.set(activity.id, activity);
                 this.selectedActivity = activity;
                 this.editMode = false;
                 this.loading = false;
@@ -76,7 +78,7 @@ export default class ActivityStore {
         try {
             await agent.Activities.update(activity);
             runInAction(() => { // Run in separate action
-                this.activities = [...this.activities.filter(a => a.id !== activity.id), activity];
+                this.activityRegistry.set(activity.id, activity);
                 this.selectedActivity = activity;
                 this.editMode = false;
                 this.loading = false;
@@ -94,7 +96,7 @@ export default class ActivityStore {
         try {
             await agent.Activities.delete(id);
             runInAction(() => { // Run in separate action
-                this.activities = [...this.activities.filter(a => a.id !== id)];
+                this.activityRegistry.delete(id);
                 if(this.selectedActivity?.id === id) this.cancelSelectedActivity();
                 this.loading = false;
             })
